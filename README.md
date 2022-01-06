@@ -1,0 +1,4 @@
+- run ```yarn dev``` in the `server` folder to start up server
+- visit `localhost:7200` in the browser to open up client
+- run animation process by clicking on `Start Animation` in browser.
+- A prompt to download output file is shown once animation is complete
