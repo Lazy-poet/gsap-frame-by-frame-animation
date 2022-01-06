@@ -9,10 +9,11 @@ const renderer = new PIXI.autoDetectRenderer({
 
 });
 
-let videoPromise;
+let advanceVideoFrame;
 let resources = [];
 let start = document.getElementById("start");
-(async () => {
+
+void async function () {
     // SET UP STAGE AND SPRITES 
     var stage = new PIXI.Container();
 
@@ -332,30 +333,45 @@ let start = document.getElementById("start");
     }
     const dataUrls = []
     let index = 0;
+    /**
+     * 
+     * @param {HTMLCanvasElement} canv current canvas object whose data we're capturing
+     * @returns void
+     * captures current data on the canvas and puhses to an array
+     */
     const seekAndCaptureFrame = (canv) => {
         const dataUrl = canv.toDataURL('image/png');
         console.log('capture frame ', index,);
         index++
         dataUrls.push(dataUrl)
     }
+
+    /**
+     * 
+     * @param {Timeline} animation 
+     * @param {Number} fps 
+     *  this function steps through animations (and videos, if there is one currently playing) 
+     *  frame by frame, capturing each frame in the process
+     */
     const advanceAnimationFrame = (animation, fps) => {
         const update = async function () {
-            const newTime = animation._time + 1 / fps
-            renderer.render(stage);
-            if (videoPromise) {
-                // check if there's a video currently playing
-                await videoPromise();
-            }
-            seekAndCaptureFrame(renderer.view)
-            // advance the animation frame by seeking to the new time after capturing is done
-            animation.time(newTime)
             if (animation.progress() === 1) {
                 // end animaiton
-                clearInterval(interval)
+                return
             }
+            renderer.render(stage);
+            seekAndCaptureFrame(renderer.view) // we call this before advancing so we get to capture firat frame
+            if (advanceVideoFrame) {
+                // check if there's a video currently playing and advance it by a frame
+                await advanceVideoFrame();
+            }
+            // advance the animation frame by seeking to the new time after capturing is done
+            const newTime = animation._time + 1 / fps
+            animation.time(newTime)
+            await update();
         }
         animation.pause()
-        let interval = setInterval(update, 1000 / fps)
+        void update()
     }
 
     masterTl.pause()
@@ -380,7 +396,7 @@ let start = document.getElementById("start");
             link.click();
         })
     })
-})()
+}()
 
 function getVideoTagFromResource(resource) {
     const source = resource.texture.baseTexture.resource?.source;
@@ -402,13 +418,15 @@ async function playIfVideo(res) {
         document.body.appendChild(video);
         video.style.display = vid.style.display = canv.style.display = 'none'
         const ctx = canv.getContext('2d');
-        videoPromise = () => new Promise(async (resolve) => {
+        let i = 1;
+        advanceVideoFrame = () => new Promise(async (resolve) => {
             if (video.currentTime >= vid.duration) {
                 video.onseeked = null;
-                videoPromise = null
-                return
+                advanceVideoFrame = null
+                console.log(i, ' video frames captured');
+                resolve()
             }
-            ctx.drawImage(video, 0, 0, canv.width, canv.height); // draw the video frame to the canvas
+            await ctx.drawImage(video, 0, 0, canv.width, canv.height); // draw the video frame to the canvas
             const dataUrl = canv.toDataURL('png');
             const base = await new PIXI.BaseTexture(dataUrl)
             const newTexture = await new PIXI.Texture(base);
@@ -416,7 +434,10 @@ async function playIfVideo(res) {
             const currentTime = Math.min(vid.duration, video.currentTime + 1 / 25)
             video.currentTime = currentTime;
             vid.currentTime = currentTime;
-            resolve(null)
+            vid.onseeked = () => {
+                resolve(null)
+                i++
+            }
         })
     }
 }
