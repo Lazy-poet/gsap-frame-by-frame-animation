@@ -31,13 +31,13 @@ app.use(function (req, res, next) {
 
   next();
 });
-app.get('/', (req, res) => {
-  res.render('index')
-})
+app.get("/", (req, res) => {
+  res.render("index");
+});
 
 app.post("/save-canvas", async (req: Request, res: Response) => {
   try {
-    const { dataUrls } = req.body;
+    const { taskId, dataUrl, frame, isComplete } = req.body;
     const decodeBase64Image = (dataString: string) => {
       var matches = dataString.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/),
         response = {} as { data: Buffer };
@@ -47,36 +47,33 @@ app.post("/save-canvas", async (req: Request, res: Response) => {
       response.data = Buffer.from(matches?.[2], "base64");
       return response;
     };
-    await Promise.all(
-      dataUrls.map(async (url: string, idx: number) => {
-        try {
-          const response = decodeBase64Image(url);
-          if (response) {
-            const { data } = response;
-            /**
-             * naming pattern of files is really important in order to allow ffmpeg pick the images sequentially
-             */
-            const index =
-              idx < 10 ? `00${idx}` : idx < 100 ? `0${idx}` : `${idx}`;
-            await saveImageFile(`frame${index}`, data);
-          }
-        } catch (e: any) {
-          console.log(e.message);
-        }
-      })
-    );
-    await command();
-    // fs.rmSync(path.join(__dirname, "../frames/"), { recursive: true, force: true });
-    return res.download(path.join(__dirname, "../output.mp4"), 'output.mp4');
+    const response = decodeBase64Image(dataUrl);
+    if (response) {
+      const { data } = response;
+      await saveImageFile(taskId, `frame${frame}`, data);
+
+      if (isComplete) {
+        await command(taskId);
+        fs.rmdirSync(path.join(__dirname, "../frames/", taskId), {
+          recursive: true,
+        });
+        return res.download(
+          path.join(__dirname, "../output.mp4"),
+          "output.mp4"
+        );
+      } else {
+        res.end();
+      }
+    }
     // res.status(200).send('done')
   } catch (err: any) {
     return res.status(500).send(`an error occured: ${err.message}`);
   }
 });
-const saveImageFile = (filename: string, data: Buffer) => {
-  const folder = path.join(__dirname, "../frames/");
+const saveImageFile = (taskId: string, filename: string, data: Buffer) => {
+  const folder = path.join(__dirname, "../frames/", taskId);
   if (!fs.existsSync(folder)) {
-    fs.mkdirSync(folder);
+    fs.mkdirSync(folder, { recursive: true });
   }
   const pathname = path.join(folder, `${filename}.png`);
   return new Promise<null>((resolve, reject) => {

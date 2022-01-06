@@ -3,11 +3,11 @@ import ffmpeg from "fluent-ffmpeg";
 import path from "path";
 ffmpeg.setFfmpegPath(pathToFfmpeg);
 
-const command = ffmpeg();
-export default () =>
+export default (taskId: string) =>
   new Promise<string>((resolve, reject) => {
+    const command = ffmpeg();
     command
-      .addInput(path.join(__dirname, "../frames/frame%03d.png")) //frame%03d suggests to ffmpeg that we're matching the text 'frame'
+      .addInput(path.join(__dirname, "../frames/", taskId, "frame%03d.png")) //frame%03d suggests to ffmpeg that we're matching the text 'frame'
       // followed by sequential 3-digit numbers
       .on("start", () => console.log("conversion started"))
       .on("progress", (data) => console.log("in progress", data))
@@ -24,4 +24,3 @@ export default () =>
       .output("./output.mp4")
       .run();
   });
- 

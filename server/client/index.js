@@ -8,7 +8,6 @@ const renderer = new PIXI.autoDetectRenderer({
     preserveDrawingBuffer: true,
 
 });
-
 let advanceVideoFrame;
 let resources = [];
 let start = document.getElementById("start");
@@ -343,7 +342,7 @@ void async function () {
         const dataUrl = canv.toDataURL('image/png');
         console.log('capture frame ', index,);
         index++
-        dataUrls.push(dataUrl)
+        return dataUrl
     }
 
     /**
@@ -354,20 +353,31 @@ void async function () {
      *  frame by frame, capturing each frame in the process
      */
     const advanceAnimationFrame = (animation, fps) => {
+        let idx = 0;
+        const taskId = uuid.v4();
         const update = async function () {
-            if (animation.progress() === 1) {
-                // end animaiton
-                return
-            }
+
             renderer.render(stage);
-            seekAndCaptureFrame(renderer.view) // we call this before advancing so we get to capture firat frame
+            const data = seekAndCaptureFrame(renderer.view) // we call this before advancing so we get to capture firat frame
             if (advanceVideoFrame) {
                 // check if there's a video currently playing and advance it by a frame
                 await advanceVideoFrame();
             }
-            // advance the animation frame by seeking to the new time after capturing is done
+            /**
+      * naming pattern of files is really important in order to allow ffmpeg pick the images sequentially
+      */
+            const index =
+                idx < 10 ? `00${idx}` : idx < 100 ? `0${idx}` : `${idx}`;
             const newTime = animation._time + 1 / fps
+            const isComplete = newTime > animation._dur && animation.progress() === 1
+            await sendFrameToServer(taskId, index, data, isComplete)
+            // advance the animation frame by seeking to the new time after capturing is done
             animation.time(newTime)
+            idx++
+            if (isComplete) {
+                // end animaiton
+                return
+            }
             await update();
         }
         animation.pause()
@@ -375,27 +385,28 @@ void async function () {
     }
 
     masterTl.pause()
-
-    start.onclick = async () => {
-        advanceAnimationFrame(masterTl, 25)
+    const sendFrameToServer = async (taskId, frame, data, isComplete = false) => {
+        try {
+            const response = await axios.post('http://localhost:7200/save-canvas', { taskId, frame, dataUrl: data, isComplete }, {
+                headers: { 'Content-Type': 'application/json', },
+                responseType: 'blob'
+            })
+            if (isComplete) {
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'output.mp4');
+                document.body.appendChild(link);
+                link.click();
+            }
+        } catch (e) {
+            console.log(e.message)
+        }
     }
-    masterTl.eventCallback('onComplete', () => {
-        console.log('animaiton done!');
-        // send the data to BE when video has ended and we've captured all frames
-        console.log('data', dataUrls);
-        window.alert('do you want to download output?')
-        axios.post('http://localhost:7200/save-canvas', { dataUrls }, {
-            headers: { 'Content-Type': 'application/json', },
-            responseType: 'blob'
-        }).then(response => {
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', 'output.mp4');
-            document.body.appendChild(link);
-            link.click();
-        })
-    })
+    start.onclick = async () => {
+        start.disabled = true
+        advanceAnimationFrame(masterTl, 25);
+    }
 }()
 
 function getVideoTagFromResource(resource) {
