@@ -437,11 +437,14 @@ async function playIfVideo(res) {
                 console.log(i, ' video frames captured');
                 resolve()
             }
-            await ctx.drawImage(video, 0, 0, canv.width, canv.height); // draw the video frame to the canvas
-            const dataUrl = canv.toDataURL('png');
-            const base = await new PIXI.BaseTexture(dataUrl)
-            const newTexture = await new PIXI.Texture(base);
-            res.texture = newTexture;
+            // added this check so we only change resource  onlyif video has been seeked at least once to prevent that initial flickering
+            if (vid.currentTime > 1/25) {
+                await ctx.drawImage(video, 0, 0, canv.width, canv.height); // draw the video frame to the canvas
+                const dataUrl = canv.toDataURL('png');
+                const base = await new PIXI.BaseTexture(dataUrl)
+                const newTexture = await new PIXI.Texture(base);
+                res.texture = newTexture;
+            }
             const currentTime = Math.min(vid.duration, video.currentTime + 1 / 25)
             video.currentTime = currentTime;
             vid.currentTime = currentTime;

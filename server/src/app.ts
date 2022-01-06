@@ -65,7 +65,6 @@ app.post("/save-canvas", async (req: Request, res: Response) => {
         res.end();
       }
     }
-    // res.status(200).send('done')
   } catch (err: any) {
     return res.status(500).send(`an error occured: ${err.message}`);
   }
