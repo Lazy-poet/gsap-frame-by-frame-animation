@@ -17,6 +17,7 @@ app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+import greenRouter from './green'
 app.use(function (req, res, next) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -28,13 +29,14 @@ app.use(function (req, res, next) {
     "X-Requested-With,content-type"
   );
   res.setHeader("Access-Control-Allow-Credentials", "true");
-
   next();
 });
+
 app.get("/", (req, res) => {
   res.render("index");
 });
 
+app.use('/', greenRouter)
 app.post("/save-canvas", async (req: Request, res: Response) => {
   try {
     const { taskId, dataUrl, frame, isComplete } = req.body;
