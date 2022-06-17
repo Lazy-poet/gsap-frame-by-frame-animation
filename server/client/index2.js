@@ -1,69 +1,74 @@
 const masterTl = gsap.timeline()
-let renderer = new PIXI.autoDetectRenderer({
+const renderer = new PIXI.autoDetectRenderer({
     width: 700,
     height: 500,
     antialias: true,
     preserveDrawingBuffer: true,
-    // transparency: 'notMultiplied'
 
 });
-let activeRenderIndex = 0;
-const renderers = [renderer]
-const renderTexture = PIXI.RenderTexture.create({ width: 700, height: 500 })
-// const sp = new P
+let displacement;
+var app = new PIXI.Application()
+// const renderer = app.renderer
+const ticker = app.ticker
+ticker.autoStart = false;
+ticker.stop();
+gsap.registerPlugin(PixiPlugin);
+PixiPlugin.registerPIXI(PIXI);
 let advanceVideoFrame;
 let resources = [];
 let start = document.getElementById("start");
-let globalIndex = 0;
-var stage = new PIXI.Container();
-let pauseAnimation = false;
-const recorder = new CanvasRecorder(renderer.view, 'output.webm', 25)
-let createSprites;
+
 void async function () {
     // SET UP STAGE AND SPRITES 
-    stage.addChild(new PIXI.Sprite(renderTexture));
-    createSprites = () => {
-        const rect = new PIXI.Graphics().beginFill(0xff0000).drawRect(0, 0, 100, 100).endFill();
-        const rectSprite = new PIXI.Sprite(renderers[activeRenderIndex].generateTexture(rect))
-        stage.addChild(rectSprite);
-        const circle = new PIXI.Graphics().beginFill(0x00ff00).drawCircle(120, 120, 100).endFill();
-        const circleSprite = new PIXI.Sprite(renderers[activeRenderIndex].generateTexture(circle))
-        circleSprite.x = 400
-        circleSprite.y = 400
-        stage.addChild(circleSprite);
-        Object.assign(rectSprite, {
-            id: "27"
-        })
-        resources.push(rectSprite)
-        Object.assign(circleSprite, {
-            id: "28"
-        })
-        resources.push(circleSprite)
+    var stage = new PIXI.Container();
 
-        const rounded = new PIXI.Graphics().beginFill(0x0000ff).drawRoundedRect(300, 300, 100, 100, 20).endFill();
-        const roundedSprite = new PIXI.Sprite(renderers[activeRenderIndex].generateTexture(rounded))
-        stage.addChild(roundedSprite);
-        Object.assign(roundedSprite, {
-            id: "29"
-        })
-        resources.push(roundedSprite)
-        roundedSprite.x = 200
-        roundedSprite.y = 200
-    }
-    createSprites()
-    let sprite1 = new PIXI.Sprite(PIXI.Texture.from("assets/sampleimg1.png"));
+    const rect = new PIXI.Graphics().beginFill(0xff0000).drawRect(0, 0, 100, 100).endFill();
+    const rectSprite = new PIXI.Sprite(renderer.generateTexture(rect))
+    // stage.addChild(rectSprite);
+    const circle = new PIXI.Graphics().beginFill(0x00ff00).drawCircle(120, 120, 100).endFill();
+    const circleSprite = new PIXI.Sprite(renderer.generateTexture(circle))
+    circleSprite.x = 400
+    circleSprite.y = 400
+    // stage.addChild(circleSprite);
+    const london = await PIXI.Texture.fromURL('./londonHOHO.jpg');
+    displacement = await PIXI.Texture.fromURL('./displacement.jpg');
+    london.width = 400
+    london.height = 300
+    const londonSprite = new PIXI.Sprite(london)
+    circleSprite.x = 400
+    circleSprite.y = 100
+    stage.addChild(londonSprite);
+    Object.assign(rectSprite, {
+        id: "27"
+    })
+    resources.push(rectSprite)
+    Object.assign(circleSprite, {
+        id: "28.5"
+    })
+    resources.push(circleSprite)
 
-    sprite1.anchor.set(0.5);
-    sprite1.width = sprite1.height = 400;
-    sprite1.x = 250;
-    sprite1.y = 250;
-    sprite1.renderable = false;
-    Object.assign(sprite1, {
-        id: "28",
-    });
-    sprite1.name = "image";
+    const rounded = new PIXI.Graphics().beginFill(0x0000ff).drawRoundedRect(300, 300, 100, 100, 20).endFill();
+    const roundedSprite = new PIXI.Sprite(renderer.generateTexture(rounded))
+    // stage.addChild(roundedSprite);
+    Object.assign(roundedSprite, {
+        // id: "29"
+    })
+    resources.push(roundedSprite)
+    roundedSprite.x = 200
+    roundedSprite.y = 200
+    // let sprite1 = new PIXI.Sprite(PIXI.Texture.from("assets/sampleimg1.png"));
+
+    // sprite1.anchor.set(0.5);
+    // sprite1.width = sprite1.height = 400;
+    // sprite1.x = 250;
+    // sprite1.y = 250;
+    // sprite1.renderable = false;
+    // Object.assign(sprite1, {
+    //     // id: "28",
+    // });
+    // sprite1.name = "image";
     // stage.addChild(sprite1);
-    resources = [...resources, sprite1];
+    // resources = [...resources, sprite1];
     console.log("first resource", resources);
     let videoEl = "./testing.mp4";
     // let videoResource;
@@ -87,16 +92,15 @@ void async function () {
     });
     resources.push(video);
 
-    stage.addChild(video);
+    // stage.addChild(video);
     const shadow = new PIXI.filters.DropShadowFilter();
     shadow.color = 0x000000;
     shadow.distance = 10;
     shadow.alpha = 0.2;
-    // video.filters = [new PIXI.filters.OutlineFilter(20, 0xff0000), shadow]
+    video.filters = [new PIXI.filters.OutlineFilter(20, 0xff0000), shadow]
 
     // SECTION: GSAP SETUP & ANIMATION
     gsap.registerPlugin(PixiPlugin);
-
     PixiPlugin.registerPIXI(PIXI);
     const promises = [];
     for (const slideAnimation of animInstructions) {
@@ -104,20 +108,20 @@ void async function () {
             (res) => res.id === slideAnimation.objectId
         );
         if (!resource) {
-            // console.log(resources);
+            console.log(resources);
+
+            // console.log(loader);
             console.error(
                 `resource with that id not found ${slideAnimation.objectId}`
             );
             continue;
         }
-
+        resource.alpha = 0
         if (resource && !resource.renderable) {
             resource.renderable = true;
-            resource.visible = false;
-            resource.alpha = false;
+            resource.visible = true
         }
         const tl = gsap.timeline({ paused: true })
-        tl.to(resource, { alpha: 1, visible: true, duration: 2 }, '>')
         const isRotation = resource.anchor.x === 1 && resource.anchor.y === 0;
         const startTime = slideAnimation.timestamp
             ? slideAnimation.timestamp / 1000
@@ -325,13 +329,13 @@ void async function () {
                             // delay: slideAnimation.timestamp
                             //   ? slideAnimation.timestamp / 1000
                             //   : 0,
-                            alpha: 1,
+                            // alpha: 1,
                             onComplete: () => {
                                 resolve(null);
                             },
                             onStart: function (res) {
                                 console.log('this timeline', this)
-                                res.alpha = 1;
+                                // res.alpha = 1;
                                 playIfVideo(res);
                             },
                             onStartParams: [resource],
@@ -343,8 +347,26 @@ void async function () {
                     })
                 );
         }
-        masterTl.add(tl.play(), startTime)
+        if (!resource.alpha) {
+            if (!slideAnimation.timestamp) {
+                tl.to(resource, { duration: 3, alpha: 1, visible: true }, 0);
+            } else {
+                tl.to(
+                    resource,
+                    { duration: 3, alpha: 1, visible: true },
+                    Number(slideAnimation.timestamp) / 1000
+                );
+            }
+        }
+        // masterTl.add(tl.play(), startTime)
     }
+
+    // const tl = gsap.timeline({ paused: true });
+    // circleSprite.alpha = 0;
+    // circleSprite.visible = false
+    // tl.to(circleSprite, { alpha: 1, duration: 2, visible: true });
+    const tl = transitionImage(londonSprite, 'in');
+    masterTl.add(tl.play(), 0)
     const dataUrls = []
     let index = 0;
     /**
@@ -354,14 +376,12 @@ void async function () {
      * captures current data on the canvas and puhses to an array
      */
     const seekAndCaptureFrame = (canv) => {
-        // const canvas = renderers[activeRenderIndex].extract.canvas(renderTexture);
-        // const dataUrl = renderers[activeRenderIndex].view.toDataURL('image/png')
-        // const dataUrl = canv.toDataURL('image/png');
-        // console.log('capture frame ', index,);
-        // index++
-        // return dataUrl
-        return ''
+        const dataUrl = canv.toDataURL('image/png');
+        console.log('capture frame ', index,);
+        index++
+        return dataUrl
     }
+    const recorder = new CanvasRecorder(renderer.view, 'output.webm', 25)
 
     /**
      * 
@@ -371,77 +391,40 @@ void async function () {
      *  frame by frame, capturing each frame in the process
      */
     recorder.startRecording()
-    const advanceAnimationFrame = async (animation, fps) => {
+    // app.ticker.stop()
+    const advanceAnimationFrame = (animation, fps) => {
         let idx = 0;
         const taskId = uuid.v4();
         const update = async function () {
-            renderers[activeRenderIndex].render(stage);
-            renderers[activeRenderIndex].render(stage, renderTexture);
-            const data = seekAndCaptureFrame(renderers[activeRenderIndex].view) // we call this before advancing so we get to capture firat frame
-            if (!pauseAnimation) {
-                recorder.capture()
-                if (advanceVideoFrame) {
-                    // check if there's a video currently playing and advance it by a frame
-                    await advanceVideoFrame();
-                }
-                /**
-          * naming pattern of files is really important in order to allow ffmpeg pick the images sequentially
-          */
-                const index =
-                    idx < 10 ? `000${idx}` : idx < 100 ? `00${idx}` : idx < 1000 ? `0${idx}` : `${idx}`;
-                const newTime = animation._time + 1 / fps
-                const isComplete = newTime > animation._dur && animation.progress() === 1
-                // advance the animation frame by seeking to the new time after capturing is done
-                await sendFrameToServer(taskId, index, data, isComplete)
-                animation.time(newTime)
-                idx++
-                globalIndex++
-                if (newTime === 5) {
-                    console.log('about to lose context')
-                    const simulateWebGLContextLoss = () => {
-                        // 
-                        // simulate loss of WebGL context, for the purposes
-                        // of improving user experience when the browser is 
-                        // overwhelmed
-                        //
-                        const canvas = document.getElementById("renderer");
-                        console.log('canvases', canvas)
-                        if (canvas) {
-                            setTimeout(() => {
-                                const webgl2Context = canvas.getContext("webgl2", {});
-                                if (webgl2Context) {
-                                    console.log(`losing webgl2 context...`);
-                                    webgl2Context.getExtension('WEBGL_lose_context').loseContext();
-                                }
-                                else {
-                                    const webglContext = canvas.getContext("webgl", {});
-                                    if (webglContext) {
-                                        console.log(`losing webgl context...`);
-                                        webglContext.getExtension('WEBGL_lose_context').loseContext();
-                                    }
-                                }
-                            }, 0);
-                        }
-                    }
-                    // simulateWebGLContextLoss()
-                }
-            } else {
-                console.log('animation paused')
+
+            renderer.render(stage);
+            const data = seekAndCaptureFrame(renderer.view) // we call this before advancing so we get to capture firat frame
+            recorder.capture()
+            if (advanceVideoFrame) {
+                // check if there's a video currently playing and advance it by a frame
+                await advanceVideoFrame();
             }
-            // if (isComplete) {
-            //     // end animaiton
-            //     recorder.stopRecording();
-            //     return
-            // }
-            // await asyncCaller(update)
+            /**
+      * naming pattern of files is really important in order to allow ffmpeg pick the images sequentially
+      */
+            const index =
+                idx < 10 ? `00${idx}` : idx < 100 ? `0${idx}` : `${idx}`;
+            const newTime = animation._time + 1 / fps
+            const isComplete = newTime > animation._dur && animation.progress() === 1
+            // await sendFrameToServer(taskId, index, data, isComplete)
+            // advance the animation frame by seeking to the new time after capturing is done
+            animation.time(newTime)
+            idx++
+            if (isComplete) {
+                // end animaiton
+                recorder.stopRecording();
+                return
+            }
+            await asyncCaller(update)
         }
         animation.pause()
-        // void update()
-        while (masterTl.progress() < 1) {
-            await update()
-        }
+        void update()
     }
-
     console.log('recorder is', recorder)
     async function asyncCaller(cb) {
         await cb()
@@ -466,6 +449,18 @@ void async function () {
         }
     }
     let startTime = 0;
+    let sprite1 = new PIXI.Sprite(PIXI.Texture.from("./IMG_7842.jpg"));
+
+    // sprite1.anchor.set(0.5);
+    sprite1.width = sprite1.height = 400;
+    sprite1.x = 250;
+    sprite1.y = 250;
+    sprite1.renderable = true;
+    Object.assign(sprite1, {
+        // id: "28",
+    });
+    sprite1.name = "image";
+    stage.addChild(sprite1);
     start.onclick = async () => {
         startTime = performance.now()
         start.disabled = true
@@ -483,61 +478,12 @@ function getVideoTagFromResource(resource) {
 
 function seekIfVideo(resource) {
 }
-const activeCanvasContexts = []
-function destroyCanvasContext(id) {
-    const context = activeCanvasContexts.find((ctx) => ctx.canvas.id === id);
-    if (context) {
-        console.log('context found', context);
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-        document.body.removeChild(context.canvas);
-    }
-}
-function addCanvasWebGLContextLossEventListener() {
-    // const canvas = document.getElementsById("renderer");
-    // if (canvas) {
-    renderer.view.addEventListener('webglcontextlost', async (event) => {
-        event.preventDefault();
-        pauseAnimation = true
-        let sprite1 = new PIXI.Sprite(PIXI.Texture.from("assets/sampleimg1.png"));
-        await new Promise((resolve, reject) => {
-            createSprites();
-            console.log('children', stage.children)
-            const newrenderer = new PIXI.autoDetectRenderer({
-                width: 700,
-                height: 500,
-                antialias: true,
-                preserveDrawingBuffer: true,
-                // transparency: 'notMultiplied'
 
-            });
-            // const canvasDiv = document.getElementById("canvas")
-            renderers.push(newrenderer)
-            canvasDiv.appendChild(newrenderer.view);
-            recorder.setCanvas(newrenderer.view);
-            activeRenderIndex++;
-            setTimeout(resolve, 900)
-        })
-        pauseAnimation = false
-        console.log('animation played ')
-    });
 
-    console.log('listener added')
-    // }
-}
-
-function removeCanvasWebGLContextLossEventListener() {
-    const canvas = document.getElementsById("renderer");
-    if (canvas) {
-        canvas.addEventListener('webglcontextlost', (event) => {
-            window.location.reload();
-        });
-    }
-}
 async function playIfVideo(res) {
     const vid = getVideoTagFromResource(res);
     if (vid) {
         const canv = document.createElement('canvas');
-        canv.setAttribute('id', res.id)
         // creating a new video element offscreen from videoResource so we can seek successfully
         const video = document.createElement('video');
         video.src = vid.children[0].src
@@ -545,60 +491,36 @@ async function playIfVideo(res) {
         document.body.appendChild(video);
         canv.width = vid.videoWidth;
         canv.height = vid.videoHeight;
-        video.style.display = vid.style.display = 'none'
+        video.style.display = vid.style.display = canv.style.display = 'none'
         const ctx = canv.getContext('2d');
-        activeCanvasContexts.push(ctx)
         let i = 1;
-        let baseVideoTextureSwapped = false;
-
         advanceVideoFrame = () => new Promise(async (resolve) => {
             if (video.currentTime >= vid.duration) {
                 video.onseeked = null;
-                //destroy and remove canvas
-                // ctx.clearRect(0, 0, canv.width, canv.height);
-                // document.body.removeChild(canv)
-                destroyCanvasContext(res.id)
-                // canvas.destroy()
                 advanceVideoFrame = null
                 console.log(i, ' video frames captured');
                 resolve()
             }
             // added this check so we only change resource  onlyif video has been seeked at least once to prevent that initial flickering
-            const currentTime = Math.min(vid.duration, video.currentTime + 1 / 25)
-            console.log('ctime', currentTime)
-            video.currentTime = currentTime;
-            vid.currentTime = currentTime;
-            vid.onseeked = async () => {
-                // if (vid.currentTime > 1 / 25) {
+            if (vid.currentTime > 1 / 25) {
                 await ctx.drawImage(video, 0, 0, canv.width, canv.height); // draw the video frame to the canvas
                 const dataUrl = canv.toDataURL('png');
                 const base = await new PIXI.BaseTexture(dataUrl)
                 const newTexture = await new PIXI.Texture(base);
-                if (baseVideoTextureSwapped) {
-                    res.texture.destroy(true);
-                    console.log('texture destroyed')
-                }
-                // console.log(res, 'res 1', i)
-
-                gsap.set(res, {
-                    pixi: { texture: newTexture }, onComplete: () => {
-                        if (!baseVideoTextureSwapped) {
-                            baseVideoTextureSwapped = true;
-                        }
-                    },
-                })
-                // res.texture = newTexture;
-                // }
+                res.texture = newTexture;
+            }
+            const currentTime = Math.min(vid.duration, video.currentTime + 1 / 25)
+            video.currentTime = currentTime;
+            vid.currentTime = currentTime;
+            vid.onseeked = () => {
+                resolve(null)
                 i++
-                resolve()
             }
         })
     }
 }
 const canvasDiv = document.getElementById("canvas")
 canvasDiv.appendChild(renderer.view);
-renderer.view.setAttribute('id', 'renderer')
-addCanvasWebGLContextLossEventListener()
 
 // function loadImage(url, width, height) {
 //     return new Promise((resolve) => {
@@ -619,3 +541,164 @@ addCanvasWebGLContextLossEventListener()
 // send.onclick = () => {
 //     const img = await loadImage()
 // }
+const transitionImage = (sprite, type = 'in', imageCount = 2) => {
+    var baseFragmentShader = `
+        precision mediump float;
+        uniform float smoothness;
+        uniform float progress;
+        uniform mat3 mappedMatrix;
+        uniform mat3 outputMatrix;
+        varying vec2 vTextureCoord;
+        uniform bool fromNothing;
+        uniform bool toNothing;
+        vec4 outputFrame;
+
+        vec4 getColor(vec2 uv, sampler2D tex) {
+          return texture2D(tex, uv);
+        }
+
+        ##IMAGE_VARS##
+
+        ##VARIABLES##
+
+        ##PLACEHOLDER##
+
+        void main() {
+          vec3 map = (outputMatrix * vec3(vTextureCoord, 1));
+          vec2 uvMap = map.xy;
+          gl_FragColor = transition(uvMap);
+        }
+    `;
+    var imageVars = ``;
+    for (var i = 0; i < imageCount; i++) {
+        var imageBaseName = 'uTexture' + (i + 1);
+        imageVars += 'uniform sampler2D ' + imageBaseName + ';\n';
+    }
+
+    baseFragmentShader = baseFragmentShader.replace('##IMAGE_VARS##', imageVars);
+    baseFragmentShader = baseFragmentShader
+        .replace(
+            '##VARIABLES##',
+            `
+                uniform float count;
+                uniform sampler2D uSampler;
+                uniform bool isVerticalFromTop;
+            `
+        )
+        .replace(
+            '##PLACEHOLDER##',
+            `
+                vec4 transition (vec2 p) {
+                    float pr = smoothstep(-smoothness, 0.0, p.x - progress * (1.0 + smoothness));
+                    float s = step(pr, fract(count * p.x));
+                    
+                    if (isVerticalFromTop) {
+                      pr = smoothstep(-smoothness, 0.0, p.y - progress * (1.0 + smoothness));
+                      s = step(pr, fract(count * p.y));
+                    }
+
+                    vec4 color1 = vec4(0, 0, 0, 0);
+                    if (fromNothing) {
+                      color1 = vec4(0, 0, 0, 0);
+                    } else {
+                      color1 = texture2D(uTexture1, p);
+                    }
+                    if (toNothing) {
+                      color1 = texture2D(uSampler, vTextureCoord);
+                    } else {
+                      color1 = vec4(0, 0, 0, 0);
+                    }
+                    vec4 color2 = texture2D(uSampler, vTextureCoord);
+                    if (toNothing) {
+                      color2 = vec4(0, 0, 0, 0);
+                    }
+                    
+                    if (toNothing) {
+                      return mix(
+                        color2,
+                        color1,
+                        s
+                      );
+                    }
+                    if (fromNothing) {
+                      return mix(
+                          color1,
+                          color2,
+                          s
+                      );
+                    }
+                }
+            `
+        );
+    const uniforms = {
+        smoothness: 0.9,
+        progress: type === 'in' ? 0 : 1,
+        fromNothing: type === 'in',
+        toNothing: type !== 'in',
+        uTexture1: type === 'in' ? PIXI.Texture.WHITE : sprite.texture,
+        uTexture2: type === 'in' ? sprite.texture : PIXI.Texture.WHITE,
+        hasMask: typeof sprite.hasMask === 'undefined' ? false : sprite.hasMask,
+        maskTexture: typeof sprite.maskTexture === 'undefined' ? PIXI.Texture.EMPTY : sprite.maskTexture,
+        hasColorize: typeof sprite.hasColor === 'undefined' ? false : sprite.hasColorize,
+        colorizeColor: typeof sprite.colorizeColor === 'undefined' ? [0, 0, 0, 0] : sprite.colorizeColor,
+        rotation: [Math.sin((sprite.angle * Math.PI) / 180), Math.cos((sprite.angle * Math.PI) / 180)],
+
+    };
+    uniforms.scale = { x: 1, y: 1 };
+    uniforms.count = 25;
+    uniforms.isVerticalFromTop = true;
+    const filter = new PIXI.Filter(undefined, baseFragmentShader, uniforms);
+    filter.apply = function (filterManager, input, output, clearMode) {
+        // fill maskMatrix with _normalized sprite texture coords_
+        this.uniforms.outputMatrix = filterManager.calculateSpriteMatrix(new PIXI.Matrix(), sprite);
+        this.uniforms.scale.x = sprite.scale.x;
+        this.uniforms.scale.y = sprite.scale.y;
+
+        // Extract rotation from world transform
+        const wt = sprite.worldTransform;
+        const lenX = Math.sqrt(wt.a * wt.a + wt.b * wt.b);
+        const lenY = Math.sqrt(wt.c * wt.c + wt.d * wt.d);
+
+        if (lenX !== 0 && lenY !== 0) {
+            this.uniforms.rotation[0] = wt.a / lenX;
+            this.uniforms.rotation[1] = wt.b / lenX;
+            this.uniforms.rotation[2] = wt.c / lenY;
+            this.uniforms.rotation[3] = wt.d / lenY;
+        }
+        // draw the filter...
+        filterManager.applyFilter(this, input, output, clearMode);
+    };
+    sprite.filters = [filter];
+    const timeline = gsap.timeline({ paused: true })
+    timeline.to(filter.uniforms, {
+        progress: type === 'in' ? 1 : 0,
+        duration: 3,
+        onUpdate: () => {
+            if (uniforms.time) {
+                uniforms.time += 0.05;
+            }
+            if (!sprite.renderable) {
+                sprite.renderable = true;
+            }
+        },
+    });
+    return timeline;
+}
+
+function calculateResolutionForShaderDisplacement(image, renderer) {
+    const imageAspect = image.height / image.width;
+    let a1;
+    let a2;
+    if (renderer.height / renderer.width > imageAspect) {
+        a1 = (renderer.width / renderer.height) * imageAspect;
+        a2 = 1;
+    } else {
+        a1 = 1;
+        a2 = renderer.height / renderer.width / imageAspect;
+    }
+
+    return {
+        type: 'vec4',
+        value: [renderer.width, renderer.height, a1, a2],
+    };
+}

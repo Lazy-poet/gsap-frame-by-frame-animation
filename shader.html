@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+    <script type="glsl">
+
+        void main(void){
+            gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0)
+        }
+        
+    </script>
+    <script type="text/javascript">
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 500;
+        document.body.appendChild(canvas);
+
+        const gl = canvas.getContext("webgl");
+        gl.clearColor(0.0, 1.0, 0.0, 1.0)
+        gl.clear(gl.COLOR_BUFFER_BIT)
+
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER)
+        gl.shaderSource(vertexShader, source)
+    </script>
+</body>
+</html>
